@@ -1,42 +1,41 @@
-version: '3.8'
-
 services:
-  mysql:
-    image: mysql:8
-    container_name: mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: Aditya
-      MYSQL_DATABASE: crud_app
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
-    ports:
-      - "3306:3306"
+    mysql:
+        image: mysql:8
+        container_name: mysql
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: Aditya
+            MYSQL_DATABASE: crud_app
+        volumes:
+            - mysql-data:/var/lib/mysql
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+        ports:
+            - "3306:3306"
+    
+    backend-svc:
+        build: ./api
+        image: backend-api:latest
+        container_name: backend-api
+        environment:
+            DB_HOST: mysql
+            DB_USER: root
+            DB_PASSWORD: Aditya
+            DB_NAME: crud_app
+            JWT_SECRET: devopsShackSuperSecretKey
+            RESET_ADMIN_PASS: 'true'
+        depends_on:
+            - mysql
+        ports:
+            - "5000:5000"
 
-  backend:
-    build: ./api
-    container_name: backend-api
-    environment:
-      DB_HOST: mysql
-      DB_USER: root
-      DB_PASSWORD: Aditya
-      DB_NAME: crud_app
-      JWT_SECRET: devopsShackSuperSecretKey
-      RESET_ADMIN_PASS: 'true'
-    depends_on:
-      - mysql
-    ports:
-      - "5000:5000"
+    Frontend:
+        build: ./client
+        image: frontend-react:latest
+        container_name: frontend-react
+        ports:
+            - "3000:80"
+        depends_on:
+            - backend-svc
 
-  frontend:
-    build: ./client
-    container_name: frontend-react
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-
-volumes:
-  mysql-data:
-
+volumes: 
+    mysql-data:
