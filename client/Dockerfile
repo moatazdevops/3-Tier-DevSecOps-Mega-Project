@@ -1,28 +1,29 @@
-# Stage 1: Build React App
-FROM node:18-alpine AS build
-
+# stage 1: Build React App
+FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# copy dependencies in package.json package-lock.json
+COPY package.json package-lock.json ./
+
+#clean and fast install using lock file through "npm ci" command
+RUN npm ci
+
+# copy the rest of the app
 COPY . .
 
-# Optional: pass REACT_APP_API as build arg
-ARG REACT_APP_API
-ENV REACT_APP_API=$REACT_APP_API
-
+# Build the React app to obtail app or dist folder which contains app.js
 RUN npm run build
 
-# Stage 2: Serve with NGINX
+#Stag 2: serve with Nginx
 FROM nginx:alpine
 
-# 🟢 Copy correct default.conf to override nginx default
+#copy the built static files resulted from the builder stage
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# add custom nginx config
 COPY default.conf /etc/nginx/conf.d/default.conf
 
-# 🟢 Copy React build output
-COPY --from=build /app/build /usr/share/nginx/html
-
-# 🔒 Prevent directory listings and ensure correct permissions
-RUN chmod -R 755 /usr/share/nginx/html
-
+# Expose port 80 for HTTP
 EXPOSE 80
+# start Nginx in the Foreground not in the background
 CMD ["nginx", "-g", "daemon off;"]
